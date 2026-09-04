@@ -32,6 +32,10 @@ source the profile page's badge comes from — no guessing.
   (`--checkpoint`, default 25) and picked up on the next run. `--fresh` restarts.
 - **Live console title.** The window title shows admins found, users checked,
   pending retries, and the current ID being checked.
+- **Real-time GitHub sync.** When run inside a clone of this repository, every
+  newly found admin is auto-committed and pushed to GitHub within ~5 seconds
+  (commit message includes the admin's name). Disabled automatically when no git
+  repo is present.
 
 ## Requirements
 

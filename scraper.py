@@ -1,7 +1,9 @@
 import argparse
 import json
 import os
+import subprocess
 import sys
+import threading
 import time
 
 import requests
@@ -320,6 +322,121 @@ def add_admin(user_id, username):
     log(f"[ADMIN] {username} | {user_id} -> {ADMINS_FILE}", COLOR_GREEN)
 
 
+GIT_EXE = None
+
+
+def find_git():
+    global GIT_EXE
+    if GIT_EXE:
+        return GIT_EXE
+    candidates = [
+        "git",
+        r"C:\Program Files\Git\cmd\git.exe",
+        r"C:\Program Files (x86)\Git\cmd\git.exe",
+    ]
+    for c in candidates:
+        try:
+            r = subprocess.run([c, "--version"], capture_output=True, timeout=10)
+            if r.returncode == 0:
+                GIT_EXE = c
+                return c
+        except Exception:
+            continue
+    return None
+
+
+def git_available():
+    git = find_git()
+    if git is None:
+        return False
+    try:
+        r = subprocess.run(
+            [git, "rev-parse", "--is-inside-work-tree"],
+            cwd=BASE_DIR, capture_output=True, text=True, timeout=10,
+        )
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def current_admins_count():
+    if not os.path.exists(ADMINS_FILE):
+        return 0
+    with open(ADMINS_FILE, "r", encoding="utf-8") as f:
+        return sum(1 for _ in f)
+
+
+def publish_admins():
+    """Commit any pending admins.txt changes and push to the GitHub repo."""
+    git = find_git()
+    if git is None:
+        return
+
+    def run_git(*args):
+        try:
+            return subprocess.run(
+                [git] + list(args), cwd=BASE_DIR,
+                capture_output=True, text=True, timeout=90,
+            )
+        except Exception as e:
+            log(f"git {args[0]} failed: {e}", COLOR_YELLOW)
+            return None
+
+    p = run_git("add", "admins.txt")
+    if p is None or p.returncode != 0:
+        return
+    diff = run_git("diff", "--cached", "--", "admins.txt")
+    if diff is None or not diff.stdout:
+        return
+    added = [
+        ln[1:] for ln in diff.stdout.splitlines()
+        if ln.startswith("+") and not ln.startswith("+++")
+    ]
+    if not added:
+        return
+    if len(added) == 1 and " | " in added[0]:
+        msg = f"Add admin: {added[0].strip()}"
+    else:
+        msg = f"Update admins.txt: {len(added)} new admin(s)"
+    c = run_git("commit", "-m", msg)
+    if c is not None and c.returncode != 0:
+        combined = (c.stderr or "") + (c.stdout or "")
+        if "nothing to commit" not in combined.lower():
+            log(f"git commit failed: {combined.strip()}", COLOR_YELLOW)
+            return
+    q = run_git("push")
+    if q is None:
+        return
+    if q.returncode != 0:
+        log(
+            f"git push failed (will retry next cycle): {(q.stderr or q.stdout).strip()}",
+            COLOR_YELLOW,
+        )
+    else:
+        log(f"GitHub updated: {msg}", COLOR_GREEN)
+
+
+def git_publish_loop():
+    if not git_available():
+        log(
+            "[GIT] No git repo here; real-time GitHub updates for admins.txt are disabled",
+            COLOR_YELLOW,
+        )
+        return
+    last_count = current_admins_count()
+    publish_admins()
+    last_count = current_admins_count()
+    while True:
+        time.sleep(5)
+        try:
+            count = current_admins_count()
+            if count > last_count:
+                publish_admins()
+                last_count = current_admins_count()
+        except Exception as e:
+            log(f"[GIT] publisher error: {e}", COLOR_YELLOW)
+
+
 def check_user(user_id):
     """Check one member for the Administrator badge. Returns 'ok', 'admin',
     'not_found', or a failure kind ('rate'/'blocked'/'error')."""
@@ -336,6 +453,7 @@ def check_user(user_id):
 
 
 def run():
+    threading.Thread(target=git_publish_loop, daemon=True).start()
     members = []
     seen = set()
     for gid in state["seed_groups"]:
