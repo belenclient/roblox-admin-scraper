@@ -1,0 +1,8 @@
+# Runtime state & logs (regenerated on every run)
+state.json
+scraper_log.txt
+config.json
+
+# Python
+__pycache__/
+*.pyc
