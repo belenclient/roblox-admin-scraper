@@ -1158,3 +1158,5 @@ volatile_const | 7415235097
 blue_robin27 | 5784589257
 SoftwareAntagonist | 9325216879
 dchin628 | 9185264706
+mangooooosteen | 8338165469
+mjks_lion | 9343279953
