@@ -3,6 +3,11 @@ state.json
 scraper_log.txt
 config.json
 
+# Profile checker runtime files
+checker_progress.txt
+checker_log.txt
+chrome_profile/
+
 # Python
 __pycache__/
 *.pyc
