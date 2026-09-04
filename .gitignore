@@ -8,6 +8,10 @@ checker_progress.txt
 checker_log.txt
 chrome_profile/
 
+# Profile checker tool - local-only, never uploaded (per owner request)
+check_profiles.bat
+check_profiles.py
+
 # Python
 __pycache__/
 *.pyc

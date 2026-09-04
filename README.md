@@ -65,22 +65,9 @@ RobloxArenaEvents | 1861517257
 
 Names already in `admins.txt` are never duplicated.
 
-## Checking the profiles in your browser
-
-`check_profiles.bat` drives **your own Chrome** (one tab) through every entry in
-`admins.txt`. It opens each profile page (https://www.roblox.com/users/{id}/profile),
-waits until the page has fully loaded, then moves on to the next entry using the
-same tab. Progress is saved after every profile to `checker_progress.txt`, so if
-you close it mid-way, re-running the bat resumes exactly where it stopped (new
-admins appended to `admins.txt` are picked up automatically).
-
-It uses Chrome's built-in remote-debugging port — reopen the bat anytime, or pass
-a number to start from a specific entry: `python check_profiles.py 0`.
-
 ## Files
 
 - `scraper.py` — the scraper.
-- `check_profiles.bat` + `check_profiles.py` — browser profile checker.
 - `admins.txt` — confirmed admins (`Name | Id`), generated.
 - `requirements.txt` — dependencies.
 - `runme.bat` — Windows launcher for the scraper.
